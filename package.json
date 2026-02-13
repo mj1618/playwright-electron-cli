@@ -1,0 +1,37 @@
+{
+  "name": "playwright-electron-cli",
+  "version": "0.1.0",
+  "description": "CLI tool to run Playwright commands against Electron applications",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "pw-electron": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/cli.js",
+    "lint": "eslint src --ext .ts",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "playwright",
+    "electron",
+    "cli",
+    "testing",
+    "automation"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "commander": "^12.0.0",
+    "playwright": "^1.41.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
