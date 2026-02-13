@@ -10,20 +10,29 @@ const program = new Command();
 
 program
   .name('pw-electron')
-  .description('CLI tool to run Playwright commands against Electron applications')
+  .description(`CLI tool to run Playwright commands against Electron applications.
+
+Uses a session-based architecture: first open an app with 'open', then run
+commands against the running instance. The app stays open until you 'close' it.`)
   .version('0.1.0')
   .addHelpText('after', `
-Examples:
-  $ pw-electron open -p ./my-electron-app    # Launch app and start session
-  $ pw-electron -e "await window.click('button')"  # Run against running app
-  $ pw-electron screenshot output.png        # Take screenshot of running app
-  $ pw-electron status                       # Check session status
-  $ pw-electron close                        # Close the running app`);
+Workflow:
+  1. Start a session:    pw-electron open -p ./my-electron-app
+  2. Run commands:       pw-electron -e "await window.click('button')"
+                         pw-electron screenshot output.png
+  3. Close when done:    pw-electron close
 
-// Global options for -e (eval) mode
+Examples:
+  $ pw-electron open -p ./my-electron-app       # Start session
+  $ pw-electron -e "await window.click('btn')"  # Run script
+  $ pw-electron -e "return await window.title()" # Get value
+  $ pw-electron screenshot output.png           # Take screenshot
+  $ pw-electron status                          # Check session
+  $ pw-electron close                           # Stop session`);
+
+// Global option for -e (eval) mode
 program
-  .option('-e, --eval <script>', 'Execute an inline Playwright script')
-  .option('-p, --path <electron-path>', 'Path to the Electron application');
+  .option('-e, --eval <script>', 'Execute a Playwright script (requires active session)');
 
 // Open command - starts the session server
 program
@@ -39,7 +48,7 @@ Example:
 
 This launches the Electron app and starts a session server.
 Other commands will connect to this running instance.`)
-  .action(async (options, command) => {
+  .action(async (options) => {
     // Check for existing session
     const existingSession = loadSession();
     if (existingSession && isSessionAlive(existingSession)) {
@@ -51,11 +60,7 @@ Other commands will connect to this running instance.`)
       process.exit(1);
     }
 
-    // Merge parent options - subcommand options take precedence
-    const parentOpts = command.parent?.opts() || {};
-    const appPath = options.path || parentOpts.path;
-    
-    if (!appPath) {
+    if (!options.path) {
       console.error('Error: Please specify the path to the Electron application');
       console.error('  pw-electron open -p /path/to/electron/app');
       process.exit(1);

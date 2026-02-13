@@ -16,33 +16,37 @@ npx playwright-electron-cli <command>
 
 ## Usage
 
-### Open an Electron app
+The CLI uses a **session-based architecture**: you first open an Electron app, which starts a background session. Then you can run multiple commands against the running app without restarting it each time.
 
-Open an Electron application and keep it running for manual interaction:
+### 1. Start a session
+
+Open an Electron application and keep it running:
 
 ```bash
-# Open from current directory (if it's an Electron app)
-pw-electron open
-
 # Open from a specific path
 pw-electron open -p /path/to/electron/app
 ```
 
+This launches the app and starts a local session server. The session persists until you close it.
+
 Options:
-- `-p, --path <electron-path>` - Path to the Electron application (default: current directory)
+- `-p, --path <electron-path>` - Path to the Electron application (required)
 - `-a, --args <args...>` - Arguments to pass to the Electron app
 - `-t, --timeout <ms>` - Timeout for launch (default: 30000)
+- `--port <port>` - Port for the session server (default: 9847)
 
-### Execute an inline script
+### 2. Run commands against the app
 
-Run Playwright commands directly from the command line:
+Once a session is active, you can run commands against it:
+
+#### Execute an inline script
 
 ```bash
-# Run against app in current directory
+# Using -e option
 pw-electron -e "await window.click('button')"
 
-# Run against app at specific path
-pw-electron -e "await window.click('button')" -p /path/to/electron/app
+# Using eval command
+pw-electron eval "await window.click('button')"
 ```
 
 The script has access to:
@@ -59,10 +63,13 @@ pw-electron -e "await window.click('button#submit')"
 pw-electron -e "await window.fill('input[name=\"username\"]', 'testuser')"
 
 # Get text content
-pw-electron -e "console.log(await window.textContent('h1'))"
+pw-electron -e "return await window.textContent('h1')"
+
+# Get the window title
+pw-electron -e "return await window.title()"
 
 # Access Electron APIs
-pw-electron -e "console.log(await app.evaluate(({ app }) => app.getName()))"
+pw-electron -e "return await app.evaluate(({ app }) => app.getName())"
 
 # Multiple commands
 pw-electron -e "
@@ -72,30 +79,34 @@ pw-electron -e "
 "
 ```
 
-### Take a screenshot
-
-Capture a screenshot of the Electron application:
+#### Take a screenshot
 
 ```bash
-# Screenshot app in current directory
 pw-electron screenshot output.png
-
-# Screenshot app at specific path
-pw-electron screenshot output.png -p /path/to/electron/app
 ```
 
-Options:
-- `-p, --path <electron-path>` - Path to the Electron application (default: current directory)
-- `-a, --args <args...>` - Arguments to pass to the Electron app
-- `-t, --timeout <ms>` - Timeout for launch (default: 30000)
-- `-d, --delay <ms>` - Delay before taking screenshot (default: 1000)
+#### Check session status
+
+```bash
+pw-electron status
+```
+
+### 3. Close the session
+
+When you're done, close the running app:
+
+```bash
+pw-electron close
+```
+
+Or press Ctrl+C in the terminal where `pw-electron open` is running.
 
 ## Programmatic Usage
 
 You can also use this package programmatically:
 
 ```typescript
-import { launchElectron, getAppInfo, runInlineScript } from 'playwright-electron-cli';
+import { launchElectron, getAppInfo } from 'playwright-electron-cli';
 
 // Launch and interact manually
 const app = await launchElectron({
@@ -110,18 +121,26 @@ const window = await app.firstWindow();
 await window.click('button');
 
 await app.close();
+```
 
-// Or run an inline script
-await runInlineScript({
-  executablePath: '/path/to/electron/app',
-  script: "await window.click('button')",
-});
+Or use the session-based approach:
+
+```typescript
+import { startServer, evalScript, takeScreenshot, closeApp } from 'playwright-electron-cli';
+
+// In one process: start the server
+await startServer({ appPath: '/path/to/electron/app' });
+
+// In another process: connect and run commands
+const result = await evalScript("await window.click('button')");
+await takeScreenshot('screenshot.png');
+await closeApp();
 ```
 
 ## Requirements
 
 - Node.js >= 18.0.0
-- An Electron application to test
+- An Electron application to test (with `electron` in its node_modules)
 
 ## Development
 
@@ -134,6 +153,9 @@ npm run build
 
 # Watch mode
 npm run dev
+
+# Link globally for testing
+npm link
 ```
 
 ## License
