@@ -68,7 +68,7 @@ Other commands will connect to this running instance.`)
 
     try {
       await startServer({
-        appPath: path.resolve(appPath),
+        appPath: path.resolve(options.path),
         args: options.args,
         timeout: parseInt(options.timeout, 10),
         port: parseInt(options.port, 10),
@@ -108,6 +108,11 @@ Requires an active session (started with "pw-electron open").`)
 program
   .command('status')
   .description('Check the status of the running Electron application')
+  .addHelpText('after', `
+Example:
+  $ pw-electron status
+
+Shows information about the active session including app name, version, and path.`)
   .action(async () => {
     try {
       const result = await getStatus();
@@ -127,7 +132,13 @@ program
 // Close command
 program
   .command('close')
-  .description('Close the running Electron application')
+  .description('Close the running Electron application and end the session')
+  .addHelpText('after', `
+Example:
+  $ pw-electron close
+
+Stops the Electron app and clears the session. You can also press Ctrl+C in the
+terminal where 'pw-electron open' is running.`)
   .action(async () => {
     try {
       const result = await closeApp();
